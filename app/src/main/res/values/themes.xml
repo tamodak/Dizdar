@@ -1,5 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.Kilit" parent="android:Theme.Material.Light.NoActionBar" />
+    <!--
+        The window theme, which is all the user sees between tapping the icon and Compose drawing
+        its first frame — around a third of a second on a budget device. Without a matching
+        windowBackground that gap is a white flash before the app appears.
+    -->
+    <style name="Theme.Killit" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/window_background</item>
+    </style>
 </resources>
