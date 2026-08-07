@@ -23,7 +23,7 @@ import kotlinx.coroutines.flow.map
  * DataStore over the same file throws at runtime, which is why this lives at file scope rather
  * than being created inside [LockPreferences].
  */
-private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "kilit_prefs")
+private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "killit_prefs")
 
 /**
  * Local storage: the hardening toggles, plus a cache and pre-provisioning bootstrap for the

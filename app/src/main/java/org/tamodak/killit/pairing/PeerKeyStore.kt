@@ -188,7 +188,7 @@ class PeerKeyStore(
 
     companion object {
         private const val ANDROID_KEYSTORE = "AndroidKeyStore"
-        private const val ALIAS = "kilit_pairing_ec"
+        private const val ALIAS = "killit_pairing_ec"
         private const val CURVE = "secp256r1"
         private const val SIGNATURE_ALGORITHM = "SHA256withECDSA"
 

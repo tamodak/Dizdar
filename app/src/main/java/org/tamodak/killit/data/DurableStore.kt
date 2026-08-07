@@ -205,18 +205,18 @@ class DurableStore(private val dpc: DevicePolicyController) {
     private companion object {
         // Suffixed for the same reason as in LockPreferences: a record written under the old
         // hashing scheme must read as absent rather than as one that can never be verified.
-        const val KEY_LOCK_TYPE = "kilit_lock_type"
-        const val KEY_SALT = "kilit_salt_sha256"
-        const val KEY_HASH = "kilit_hash_sha256"
-        const val KEY_FAILED_ATTEMPTS = "kilit_failed_attempts"
-        const val KEY_LOCKOUT_UNTIL = "kilit_lockout_until"
+        const val KEY_LOCK_TYPE = "killit_lock_type"
+        const val KEY_SALT = "killit_salt_sha256"
+        const val KEY_HASH = "killit_hash_sha256"
+        const val KEY_FAILED_ATTEMPTS = "killit_failed_attempts"
+        const val KEY_LOCKOUT_UNTIL = "killit_lockout_until"
 
-        const val KEY_RELEASE_REQUESTED_AT = "kilit_release_requested_at"
-        const val KEY_RELEASE_AVAILABLE_AT = "kilit_release_available_at"
+        const val KEY_RELEASE_REQUESTED_AT = "killit_release_requested_at"
+        const val KEY_RELEASE_AVAILABLE_AT = "killit_release_available_at"
 
-        const val KEY_PEERS = "kilit_paired_peers"
-        const val KEY_OWN_PUBLIC_KEY = "kilit_own_public_key"
-        const val KEY_GUARDIAN_FOR = "kilit_guardian_for"
+        const val KEY_PEERS = "killit_paired_peers"
+        const val KEY_OWN_PUBLIC_KEY = "killit_own_public_key"
+        const val KEY_GUARDIAN_FOR = "killit_guardian_for"
     }
 }
 
