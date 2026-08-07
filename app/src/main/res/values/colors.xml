@@ -7,4 +7,6 @@
         theme needs. (The unused purple_*/teal_* template colours were removed.)
     -->
     <color name="window_background">#090B0E</color>
+
+    <color name="ic_launcher_background">#2C2C2C</color>
 </resources>
