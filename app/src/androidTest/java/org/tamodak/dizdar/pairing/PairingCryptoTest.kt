@@ -1,7 +1,7 @@
-package org.tamodak.killit.pairing
+package org.tamodak.dizdar.pairing
 
-import org.tamodak.killit.core.KillitLog
-import org.tamodak.killit.data.PairedPeer
+import org.tamodak.dizdar.core.DizdarLog
+import org.tamodak.dizdar.data.PairedPeer
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -24,14 +24,17 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 @RunWith(AndroidJUnit4::class)
 class PairingCryptoTest {
 
+    /** The real Keystore-backed identity. Not a fake — the TEE path is what is under test. */
     private val keyStore = PeerKeyStore()
 
+    /** Turns tracing on and makes sure a key exists before any test tries to sign with it. */
     @Before
     fun setUp() = runBlocking {
-        KillitLog.verbose = true
+        DizdarLog.verbose = true
         assertTrue("Could not create the pairing key", keyStore.createKeyPair())
     }
 
+    /** The happy path end to end: a key exists, produces a signature, and verifies its own. */
     @Test
     fun signsAndVerifiesItsOwnPayload(): Unit = runBlocking {
         val publicKey = keyStore.publicKey()
@@ -54,7 +57,11 @@ class PairingCryptoTest {
         assertTrue(keyStore.verify(publicKey, payload, signature!!))
     }
 
-    /** Creating twice must keep the original key — replacing it would strand every paired peer. */
+    /**
+     * Calling create twice keeps the original key.
+     *
+     * Replacing it would strand every paired peer, which still holds the old one.
+     */
     @Test
     fun keyCreationIsIdempotent(): Unit = runBlocking {
         val first = keyStore.publicKey()
@@ -63,6 +70,7 @@ class PairingCryptoTest {
         assertTrue("The pairing key must not be replaced", first!!.contentEquals(second!!))
     }
 
+    /** A valid signature does not verify against somebody else's public key. */
     @Test
     fun rejectsASignatureFromADifferentKey(): Unit = runBlocking {
         val publicKey = keyStore.publicKey()!!
@@ -83,8 +91,10 @@ class PairingCryptoTest {
     }
 
     /**
-     * The heart of the replay protection: a signature is bound to the exact payload, so changing
-     * any bound field invalidates it.
+     * Changing any bound field invalidates the signature.
+     *
+     * The heart of the replay protection: a signature is bound to the exact payload. Each of the
+     * four fields is varied in turn, and each maps to a real attack — named at its assertion below.
      */
     @Test
     fun signatureIsBoundToEveryFieldOfThePayload(): Unit = runBlocking {
@@ -128,8 +138,16 @@ class PairingCryptoTest {
         )
     }
 
+    /**
+     * A malformed or off-curve public key is refused, not thrown on.
+     *
+     * The off-curve case is the one that matters: accepting a point that is not on P-256 is the
+     * classic invalid-curve attack.
+     */
     @Test
     fun rejectsMalformedPublicKeys(): Unit = runBlocking {
+        // Each case below is a key an attacker could supply; verification must return false rather
+        // than throw, since this runs on every scanned response.
         val payload = PairingProtocol.payload(
             ChallengePurpose.UNLOCK, PairingProtocol.newNonce(), ByteArray(8), ByteArray(8),
         )
@@ -153,6 +171,7 @@ class PairingCryptoTest {
         assertFalse("x is not below the field prime", keyStore.verify(outOfField, payload, signature))
     }
 
+    /** An empty, wrong-length or nonsense signature is refused rather than throwing. */
     @Test
     fun rejectsAGarbageSignature(): Unit = runBlocking {
         val publicKey = keyStore.publicKey()!!
@@ -165,6 +184,8 @@ class PairingCryptoTest {
     }
 
     /**
+     * Raw and DER signature encodings convert both ways, over 32 real signatures.
+     *
      * The QR carries `r||s`, the platform speaks DER, and the conversion runs on every signature.
      *
      * Repeated because the interesting cases are not deterministic: roughly one signature in 256
@@ -194,9 +215,10 @@ class PairingCryptoTest {
     }
 
     /**
-     * Round-trips a real key through the encoding used on the wire. A coordinate whose top bit is
-     * set, or one with leading zeros, is where a hand-written encoder silently produces the wrong
-     * length — and neither is rare enough to hope for.
+     * A real key survives compression and decompression unchanged.
+     *
+     * A coordinate whose top bit is set, or one with leading zeros, is where a hand-written encoder
+     * silently produces the wrong length — and neither is rare enough to hope for.
      */
     @Test
     fun publicKeyEncodingRoundTrips(): Unit = runBlocking {
@@ -209,6 +231,12 @@ class PairingCryptoTest {
         )
     }
 
+    /**
+     * All three payload types encode and decode back to equal values, using real key material.
+     *
+     * The pairing label deliberately carries both delimiters the storage format uses, so a payload
+     * that would break the peer list on the other side fails here instead.
+     */
     @Test
     fun qrPayloadsRoundTrip(): Unit = runBlocking {
         val publicKey = keyStore.publicKey()!!
@@ -237,15 +265,21 @@ class PairingCryptoTest {
             assertTrue("Not alphanumeric-mode safe: $text", text.all { it in alphanumeric })
         }
 
-        KillitLog.i(KillitLog.PAIRING, "QR sizes: pair=${pairing.encode().length} " +
+        DizdarLog.i(DizdarLog.PAIRING, "QR sizes: pair=${pairing.encode().length} " +
             "challenge=${challenge.encode().length} response=${response.encode().length} chars")
     }
 
+    /**
+     * Codes that are not Dizdar payloads, and Dizdar payloads that are damaged, decode to null.
+     *
+     * The scanner feeds every camera frame through the decoder, so this is the common case, not the
+     * exceptional one.
+     */
     @Test
     fun rejectsForeignAndCorruptQrCodes() {
         assertNull(QrPayload.decode("https://example.com"))
         assertNull(QrPayload.decode(""))
-        assertNull(QrPayload.decode("KILLIT-PAIR:1:aaaa:bbbb"))
+        assertNull(QrPayload.decode("DIZDAR-PAIR:1:aaaa:bbbb"))
         assertNull("Prefix alone", QrPayload.decode("KP"))
         assertNull("Truncated key", QrPayload.decode("KP" + "A".repeat(20)))
         assertNull("Not base32", QrPayload.decode("KP" + "1".repeat(53)))
@@ -255,6 +289,8 @@ class PairingCryptoTest {
     }
 
     /**
+     * A session reports itself valid before its deadline and expired after.
+     *
      * The only expiry that is enforced anywhere, and the reason it works: one device, one clock.
      */
     @Test
@@ -269,6 +305,12 @@ class PairingCryptoTest {
         assertTrue("Expired afterwards", session.isExpired(1_070_000L))
     }
 
+    /**
+     * Labels holding the format's own delimiters, and empty labels, round-trip intact.
+     *
+     * The label is user-supplied text going into a delimited record, which is exactly why it is
+     * Base64-encoded rather than written raw.
+     */
     @Test
     fun peerListSerialisationSurvivesAwkwardLabels() {
         val peers = listOf(
@@ -279,6 +321,12 @@ class PairingCryptoTest {
         assertEquals(peers, restored)
     }
 
+    /**
+     * A corrupt line costs only itself; the peers around it still load.
+     *
+     * Losing one entry is recoverable by re-pairing that device. Losing the whole list would leave
+     * a paired phone silently unpaired, and back on its passkey.
+     */
     @Test
     fun peerListDropsOnlyTheCorruptEntries() {
         val good = PairedPeer(ByteArray(PeerKeyStore.PUBLIC_KEY_BYTES) { 3 }, "Ayşe", 3_000L)
@@ -286,7 +334,12 @@ class PairingCryptoTest {
         assertEquals(listOf(good), PairedPeer.deserialize(raw))
     }
 
-    /** A second, independent P-256 key that is not in the Keystore — stands in for another phone. */
+    /**
+     * Mints a second, independent P-256 key that is not in the Keystore — stands in for another
+     * phone.
+     *
+     * @return its compressed public point, in the same encoding a real peer's would arrive in.
+     */
     private fun strangerPublicKey(): ByteArray {
         val generator = java.security.KeyPairGenerator.getInstance("EC")
         generator.initialize(java.security.spec.ECGenParameterSpec("secp256r1"))

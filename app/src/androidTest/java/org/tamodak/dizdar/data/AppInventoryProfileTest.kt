@@ -1,4 +1,4 @@
-package org.tamodak.killit.data
+package org.tamodak.dizdar.data
 
 import android.content.Context
 import android.content.pm.PackageManager
@@ -18,9 +18,19 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class AppInventoryProfileTest {
 
+    /** The instrumentation context, standing in for the app's own. */
     private val context = ApplicationProvider.getApplicationContext<Context>()
+
+    /** The package manager under measurement. */
     private val pm: PackageManager = context.packageManager
 
+    /**
+     * Times each of the three package-manager calls separately.
+     *
+     * Asserts nothing — the output is the point. Read the timings with
+     * `adb logcat -s DizdarProfile`; the per-package `getLaunchIntentForPackage` loop is the one
+     * `AppInventory` replaced with two batched queries, and this is what showed it was worth doing.
+     */
     @Test
     fun profileInstalledAppScan() {
         @Suppress("DEPRECATION")
@@ -37,6 +47,16 @@ class AppInventoryProfileTest {
         Log.i(TAG, "Scanned ${installed.size} packages, $launchable launchable, ${labels.size} labels")
     }
 
+    /**
+     * Runs a block and logs how long it took.
+     *
+     * Uses [SystemClock.elapsedRealtime] for the same reason `DizdarLog.timed` does: a clock
+     * adjustment mid-measurement cannot produce a nonsense duration.
+     *
+     * @param label names the call in the log line.
+     * @param block the call to measure.
+     * @return whatever [block] returns.
+     */
     private inline fun <T> measured(label: String, block: () -> T): T {
         val startedAt = SystemClock.elapsedRealtime()
         val result = block()
@@ -45,6 +65,7 @@ class AppInventoryProfileTest {
     }
 
     private companion object {
-        const val TAG = "KillitProfile"
+        /** Its own tag, not a `DizdarLog` one, so the timings can be read without app noise. */
+        const val TAG = "DizdarProfile"
     }
 }

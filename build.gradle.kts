@@ -1,4 +1,8 @@
-// Top-level build file where you can add configuration options common to all sub-projects/modules.
+// Root build file.
+//
+// Dizdar is a single-module project, so there is nothing shared to configure here. The plugins are
+// declared with `apply false` purely to pin their versions from the catalogue; `:app` is what
+// actually applies them.
 plugins {
     alias(libs.plugins.android.application) apply false
     alias(libs.plugins.kotlin.compose) apply false

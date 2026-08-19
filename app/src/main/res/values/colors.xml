@@ -8,5 +8,9 @@
     -->
     <color name="window_background">#090B0E</color>
 
+    <!--
+        The adaptive launcher icon's background layer. A resource rather than part of the artwork,
+        because the launcher masks and animates the two layers independently.
+    -->
     <color name="ic_launcher_background">#2C2C2C</color>
 </resources>

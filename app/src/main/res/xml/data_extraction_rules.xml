@@ -1,19 +1,30 @@
-<?xml version="1.0" encoding="utf-8"?><!--
-   Sample data extraction rules file; uncomment and customize as necessary.
-   See https://developer.android.com/about/versions/12/backup-restore#xml-changes
-   for details.
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Backup and device-transfer rules for API 31 and above, the successor to backup_rules.xml.
+
+    Inert for the same reason: android:allowBackup="false" in the manifest stops both paths before
+    these rules are read. They are stated explicitly anyway, so the intent survives someone flipping
+    that attribute.
+
+    Both routes are excluded wholesale, for the same reason:
+
+    - cloud-backup — the credential record and the peer list are meaningless off this device. Both
+      are verified against a Keystore key that never leaves the hardware, so a restored copy is a
+      lock with no key.
+    - device-transfer — a direct handset-to-handset move has the same problem, and would also carry
+      the durable copy's assumptions about a device owner that the new phone is not.
+
+    See https://developer.android.com/about/versions/12/backup-restore#xml-changes
 -->
 <data-extraction-rules>
     <cloud-backup>
-        <!-- TODO: Use <include> and <exclude> to control what is backed up.
-        <include .../>
-        <exclude .../>
-        -->
+        <exclude domain="file" path="." />
+        <exclude domain="database" path="." />
+        <exclude domain="sharedpref" path="." />
     </cloud-backup>
-    <!--
     <device-transfer>
-        <include .../>
-        <exclude .../>
+        <exclude domain="file" path="." />
+        <exclude domain="database" path="." />
+        <exclude domain="sharedpref" path="." />
     </device-transfer>
-    -->
 </data-extraction-rules>

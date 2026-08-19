@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "org.tamodak.killit"
+    namespace = "org.tamodak.dizdar"
     compileSdk {
         version = release(36) {
             minorApiLevel = 1
@@ -12,12 +12,18 @@ android {
     }
 
     defaultConfig {
-        applicationId = "org.tamodak.killit"
+        applicationId = "org.tamodak.dizdar"
+        // 26 is what the pairing design costs: ECDSA P-256 is Keystore-native from 23, but the
+        // rest of the app assumes API 26 platform behaviour. A few features degrade below their
+        // ceiling here — force-stop blocking needs 30, StrongBox needs 28 — and each is guarded at
+        // its call site rather than raising the floor for everyone.
         minSdk = 26
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
 
+        // Dizdar's meaningful tests are instrumented: the Keystore, DataStore and the device policy
+        // service have no JVM equivalent worth faking.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // How long "unblock all & remove admin" waits before it can be carried out. The delay is
@@ -36,7 +42,8 @@ android {
                 // live in src/main/keepRules/.
                 enable = true
             }
-            // Three days.
+            // Three days. Long enough that the decision has to survive a change of mood, short
+            // enough that someone with a genuine reason is not stranded for a week.
             buildConfigField("long", "RELEASE_DELAY_MILLIS", "259_200_000L")
         }
     }
@@ -46,14 +53,17 @@ android {
     }
     buildFeatures {
         compose = true
+        // For IDizdarPrivilegedService, the binder interface to the Shizuku user service.
         aidl = true
-        // KillitPrivilegedService rebuilds the admin component from BuildConfig.APPLICATION_ID
+        // DizdarPrivilegedService rebuilds the admin component from BuildConfig.APPLICATION_ID
         // rather than trusting one passed over binder.
         buildConfig = true
     }
 }
 
 dependencies {
+    // The BOM pins every Compose artifact to one compatible set, so the entries below carry no
+    // versions of their own. Applied to androidTest as well, or the test artifacts drift from it.
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3)
@@ -65,9 +75,12 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
+    // Backs LockPreferences: the local half of the credential store.
     implementation(libs.androidx.datastore.preferences)
+    // Provisioning without a computer. `api` is the client, `provider` the manifest component.
     implementation(libs.shizuku.api)
     implementation(libs.shizuku.provider)
+    // QR encoding and decoding for companion pairing.
     implementation(libs.zxing.core)
     implementation(libs.zxing.embedded)
     testImplementation(libs.junit)

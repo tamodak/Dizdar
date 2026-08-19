@@ -1,14 +1,27 @@
-package org.tamodak.killit.pairing
+package org.tamodak.dizdar.pairing
 
-import org.tamodak.killit.data.PairedPeer
+import org.tamodak.dizdar.data.PairedPeer
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
+/**
+ * The challenge deadline: how it survives the wire, and where it actually gets enforced.
+ *
+ * The expiry is the one variable-width field in any payload — Base36, running to the end of the
+ * string — so it is the one that can change the payload's length, and the only place a decoder
+ * cannot slice by a fixed offset.
+ */
 class ChallengeExpiryTest {
 
+    /**
+     * Builds a challenge whose only interesting field is the deadline.
+     *
+     * @param expiresAtEpochSeconds the deadline to encode.
+     * @return a challenge with fixed, valid-width filler in every other field.
+     */
     private fun challengeAt(expiresAtEpochSeconds: Long) = QrPayload.Challenge(
         nonce = ByteArray(PairingProtocol.NONCE_BYTES) { it.toByte() },
         requesterFingerprint = ByteArray(PairedPeer.FINGERPRINT_BYTES) { it.toByte() },
@@ -16,6 +29,7 @@ class ChallengeExpiryTest {
         expiresAtEpochSeconds = expiresAtEpochSeconds,
     )
 
+    /** A challenge issued right now encodes and decodes with its deadline intact. */
     @Test
     fun aFreshChallengeSurvivesTheWire() {
         val now = System.currentTimeMillis()
@@ -29,6 +43,13 @@ class ChallengeExpiryTest {
         assertEquals("Expiry must survive base36", expiresAt, decoded!!.expiresAtEpochSeconds)
     }
 
+    /**
+     * The deadline survives every width the Base36 field can take.
+     *
+     * The boundaries are where a digit is added, which is where a decoder that assumed a fixed
+     * width would start reading the wrong characters — including the one epoch seconds actually
+     * crosses in 2038.
+     */
     @Test
     fun expiryRoundTripsAcrossTheBase36DigitBoundaries() {
         // 36^6 and 36^7 are where the field changes width; epoch seconds crosses 36^6 in 2038.
@@ -47,6 +68,8 @@ class ChallengeExpiryTest {
     }
 
     /**
+     * A round stays open for its full lifetime, and closes after it.
+     *
      * A session measures itself against the clock that created it, so it is the one place an
      * expiry means anything. Nothing compares a deadline from one device against another's clock.
      */

@@ -1,4 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    The round-icon variant, identical to ic_launcher.xml.
+
+    Adaptive icons are masked by the launcher, so the round shape needs no separate artwork — but
+    android:roundIcon in the manifest still has to resolve to something, and a launcher that
+    predates adaptive icons falls back to the round mipmap densities alongside this file.
+-->
 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
     <background android:drawable="@color/ic_launcher_background" />
     <foreground android:drawable="@mipmap/ic_launcher_foreground" />

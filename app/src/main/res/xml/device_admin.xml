@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    Killit only suspends packages, which is a device-owner capability rather than a
+    Dizdar only suspends packages, which is a device-owner capability rather than a
     device-admin policy, so no <uses-policies> entries are required here.
 -->
 <device-admin xmlns:android="http://schemas.android.com/apk/res/android">

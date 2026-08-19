@@ -246,8 +246,8 @@ def main(root):
         save(render(size, tile=None, scale=SAFE_SCALE, color=(255, 255, 255)),
              res / f'mipmap-{density}/ic_launcher_monochrome.webp')
 
-    save(render(1024), root / 'killit_icon.png')
-    save(render(512, tile='square', opaque=True), root / 'killit_icon_play_512.png')
+    save(render(1024), root / 'dizdar_icon.png')
+    save(render(512, tile='square', opaque=True), root / 'dizdar_icon_play_512.png')
 
 
 if __name__ == '__main__':

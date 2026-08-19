@@ -1,6 +1,6 @@
-package org.tamodak.killit.pairing
+package org.tamodak.dizdar.pairing
 
-import org.tamodak.killit.data.PairedPeer
+import org.tamodak.dizdar.data.PairedPeer
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.EncodeHintType
 import com.google.zxing.qrcode.QRCodeWriter
@@ -25,6 +25,7 @@ class QrPayloadSizeTest {
     /** The characters QR alphanumeric mode can hold at 5.5 bits each. Anything else costs 8. */
     private val alphanumeric = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:"
 
+    /** A pairing offer, with an over-long label, still fits in a 33-module code. */
     @Test
     fun pairingCodeStaysSmall() {
         val payload = QrPayload.Pairing(
@@ -35,6 +36,7 @@ class QrPayloadSizeTest {
         assertModules(payload, expected = 33)
     }
 
+    /** A challenge, with its expiry field at full width, still fits in a 29-module code. */
     @Test
     fun challengeCodeStaysSmall() {
         val payload = QrPayload.Challenge(
@@ -47,6 +49,12 @@ class QrPayloadSizeTest {
         assertModules(payload, expected = 29)
     }
 
+    /**
+     * A companion's approval fits in a 37-module code — the largest of the three.
+     *
+     * It carries a full signature, so it is the payload that sets the floor on how legible the
+     * codes have to be.
+     */
     @Test
     fun responseCodeStaysSmall() {
         val payload = QrPayload.Response(
@@ -56,6 +64,7 @@ class QrPayloadSizeTest {
         assertModules(payload, expected = 37)
     }
 
+    /** An over-long multi-byte label is cut between characters, not through one. */
     @Test
     fun labelIsTruncatedOnACharacterBoundary() {
         // Every character is three UTF-8 bytes, so a naive cut at 16 would split one in half and
@@ -70,6 +79,18 @@ class QrPayloadSizeTest {
         assertTrue(decoded.label.toByteArray(Charsets.UTF_8).size <= QrPayload.LABEL_MAX_BYTES)
     }
 
+    /**
+     * Encodes a payload and asserts the resulting code's size.
+     *
+     * Checks the alphabet first, because leaving alphanumeric mode costs a third of the capacity
+     * and would show up here only as a larger-than-expected module count with no clue why.
+     *
+     * The encoder is configured exactly as `QrImage` configures it — same error correction, same
+     * margin — so the number asserted is the number that reaches the screen.
+     *
+     * @param payload the payload to measure, built at its maximum length.
+     * @param expected the module count the code must come out at.
+     */
     private fun assertModules(payload: QrPayload, expected: Int) {
         val text = payload.encode()
 

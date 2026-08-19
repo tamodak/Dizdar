@@ -1,4 +1,4 @@
-package org.tamodak.killit.pairing
+package org.tamodak.dizdar.pairing
 
 import java.security.SecureRandom
 import org.junit.Assert.assertEquals
@@ -15,6 +15,13 @@ import org.junit.Test
  */
 class Base32Test {
 
+    /**
+     * Encoding then decoding must return the input, at every length from empty to 64 bytes.
+     *
+     * Also pins the two properties the wire format depends on: that the encoded length is
+     * predictable — [QrPayload] computes its field offsets from it — and that the output stays
+     * inside QR's alphanumeric set, which is the whole reason for using Base32 over Base64.
+     */
     @Test
     fun roundTripsAtEveryLength() {
         val random = SecureRandom()
@@ -32,6 +39,14 @@ class Base32Test {
         }
     }
 
+    /**
+     * Pins the three field widths the decoders slice by.
+     *
+     * These are derived at class-init time rather than hardcoded, so a change to a key or signature
+     * size shifts every offset in [QrPayload] at once. Asserting the numbers here means such a
+     * change has to be deliberate: it fails this test rather than silently producing payloads the
+     * other side reads at the wrong boundaries.
+     */
     @Test
     fun theFieldWidthsTheWireFormatDependsOn() {
         assertEquals(53, base32Length(PeerKeyStore.PUBLIC_KEY_BYTES))
@@ -39,6 +54,12 @@ class Base32Test {
         assertEquals(26, base32Length(PairingProtocol.NONCE_BYTES))
     }
 
+    /**
+     * Malformed input decodes to null rather than to plausible-looking bytes.
+     *
+     * This runs on QR codes read off a camera, where a partial or misread code is routine. Every
+     * case below is one a lenient decoder would happily accept.
+     */
     @Test
     fun rejectsAnythingItDidNotProduce() {
         assertNull("Lowercase is not in the alphabet", "aaaa".decodeBase32())
